@@ -5,6 +5,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "server.h"
+
 #define LOG_FILENAME  "./server.log"
 
 int main(int argc, char *argv[])
@@ -82,7 +84,7 @@ int main(int argc, char *argv[])
 
 
   /* Change the current working directory */
-  if ((chdir("/")) < 0) {
+  if ((chdir(dir)) < 0) {
     /* Log any failures here */
     exit(EXIT_FAILURE);
   }
@@ -97,9 +99,10 @@ int main(int argc, char *argv[])
   // std::cout << "test stdout log" << std::endl ;
   // std::cerr << "test stderr log" << std::endl;
   /* The Big Loop */
-  while (1) {
-     /* Do some task here ... */
-     sleep(30); /* wait 30 seconds */
-  }
+  // while (1) {
+  //     Do some task here ...
+  //    sleep(30); /* wait 30 seconds */
+  // }
+  server(port, ip, dir);
   return 0;
 }

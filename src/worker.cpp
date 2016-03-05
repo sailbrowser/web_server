@@ -26,7 +26,12 @@ struct http_io {
   // char const *tmp;
 };
 
-void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
+static void workersigterm_cb (struct ev_loop *loop, struct ev_signal *w, int revents)
+{
+  ev_unloop (loop, EVUNLOOP_ALL);
+}
+
+static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   struct stat stat_buf;
   char buffer[BUFF_SIZE];
   char path[MAX_PATH_LEN];
@@ -66,7 +71,7 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
 //
 // Read accepted socket from main process
 //
-void socket_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
+static void socket_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   int sd;
   char buf[16];
   if(sock_fd_read(watcher->fd, buf, sizeof(buf), &sd) < 0) {
@@ -89,6 +94,11 @@ void worker(int sv, char *dir) {
     w_socket.dir = dir;
     ev_io_init(&w_socket.w_io, socket_cb, sv, EV_READ);
     ev_io_start(loop, &w_socket.w_io);
+
+    struct ev_signal signal_watcher;
+    ev_signal_init(&signal_watcher, workersigterm_cb, SIGTERM);
+    ev_signal_start(loop, &signal_watcher);
+
     ev_run(loop, 0);
     // shutdown(sv, SHUT_RDWR);
     close(sv);

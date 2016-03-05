@@ -20,8 +20,12 @@ struct socket_io {
   // char const *tmp;
 };
 
+static void sigterm_cb (struct ev_loop *loop, struct ev_signal *w, int revents)
+{
+  ev_unloop (loop, EVUNLOOP_ALL);
+}
 
-void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
+static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   int client_sd = accept(watcher->fd, 0, 0);
   if(client_sd == -1) {
     perror("accept");
@@ -29,10 +33,12 @@ void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   }
   struct socket_io *w_accept = (struct socket_io *)watcher;
   static int index = 0;
+  // printf("to process socket %d\n", w_accept->sv[index]);
   int sv = w_accept->sv[index++];
   index %= w_accept->cores;
   // send socket to next worker
   sock_fd_write(sv, (void *)"1", 1, client_sd);
+  close(client_sd);
   // struct socket_io *w_client = (struct socket_io *) malloc(sizeof(struct socket_io));
   // w_client->dir = w_accept->dir;
   // ev_io_init(&w_client->w_io, read_cb, client_sd, EV_READ);
@@ -83,5 +89,11 @@ void server(const int port, char const *ip_address, const int *sv, const int cor
 
   ev_io_init(&w_accept.w_io, accept_cb, sd, EV_READ);
   ev_io_start(loop, &w_accept.w_io);
+
+  struct ev_signal signal_watcher;
+  ev_signal_init(&signal_watcher, sigterm_cb, SIGTERM);
+  ev_signal_start(loop, &signal_watcher);
+
   ev_run(loop, 0);
+  close(sd);
 }

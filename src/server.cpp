@@ -7,58 +7,19 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ev.h>
-#include <sys/sendfile.h>
 #include <netdb.h>
 
-#define BUFF_SIZE 4096
-#define MAX_PATH_LEN 1024
+#include "server.h"
+#include "socket_fd.h"
 
-const char* http_get_msg = "GET /";
-const char* success_msg = "HTTP/1.0 200 OK\n";
-const char* not_found_msg = "HTTP/1.0 404 Not found\n";
-const char* content_type_msg = "Content-Type: text/html\n";
 
-struct http_io {
+struct socket_io {
   struct ev_io w_io;
-  char const *tmp;
+  int cores;
+  const int *sv;
+  // char const *tmp;
 };
 
-void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
-  struct stat stat_buf;
-  char buffer[BUFF_SIZE];
-  char path[MAX_PATH_LEN];
-
-  ssize_t r = recv(watcher->fd, buffer, sizeof(buffer), MSG_NOSIGNAL);
-  if (r < 0) {
-    perror("read:");
-    return;
-  }
-  // struct http_io *w_read = (struct http_io *)watcher;
-  printf("%s\n", buffer);
-  if(strncmp(http_get_msg, buffer, strlen(http_get_msg)) == 0) {
-    strncpy(path, "index.html", sizeof(path) - 1);
-    // strncat(path, "/index.html", sizeof(path) - 1);
-    int fd = open(path, O_RDONLY);
-    if(fd == -1) {
-      send(watcher->fd, not_found_msg, strlen(not_found_msg), MSG_NOSIGNAL);
-    } else {
-      send(watcher->fd, success_msg, strlen(success_msg), MSG_NOSIGNAL);
-      send(watcher->fd, content_type_msg, strlen(content_type_msg), MSG_NOSIGNAL);
-      /* get the size of the file to be sent */
-      fstat(fd, &stat_buf);
-      // int offset = 0;
-      ssize_t rc = sendfile (watcher->fd, fd, NULL, stat_buf.st_size);
-      if (rc == -1) {
-        perror("sendfile");
-      }
-      close(fd);
-    }
-  }
-  shutdown(watcher->fd, SHUT_RDWR);
-  close(watcher->fd);
-  ev_io_stop(loop, watcher);
-  free(watcher);
-}
 
 void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   int client_sd = accept(watcher->fd, 0, 0);
@@ -66,14 +27,19 @@ void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
     perror("accept");
     return;
   }
-  struct http_io *w_client = (struct http_io *) malloc(sizeof(struct http_io));
-  // struct http_io *w_accept = (struct http_io *)watcher;
+  struct socket_io *w_accept = (struct socket_io *)watcher;
+  static int index = 0;
+  int sv = w_accept->sv[index++];
+  index %= w_accept->cores;
+  // send socket to next worker
+  sock_fd_write(sv, (void *)"1", 1, client_sd);
+  // struct socket_io *w_client = (struct socket_io *) malloc(sizeof(struct socket_io));
   // w_client->dir = w_accept->dir;
-  ev_io_init(&w_client->w_io, read_cb, client_sd, EV_READ);
-  ev_io_start(loop, &w_client->w_io);
+  // ev_io_init(&w_client->w_io, read_cb, client_sd, EV_READ);
+  // ev_io_start(loop, &w_client->w_io);
 }
 
-int server(const int port, char const *ip_address, char const *dir)
+void server(const int port, char const *ip_address, const int *sv, const int cores)
 {
   struct ev_loop *loop = ev_default_loop(0);
   if(!loop) {
@@ -110,12 +76,12 @@ int server(const int port, char const *ip_address, char const *dir)
     exit(1);
   }
 
-  struct http_io w_accept;
-  // w_accept.dir = dir;
+  struct socket_io w_accept;
+  w_accept.cores = cores;
+  w_accept.sv = sv;
   // strncpy(w_accept.dir, dir, sizeof(w_accept.dir));
 
   ev_io_init(&w_accept.w_io, accept_cb, sd, EV_READ);
   ev_io_start(loop, &w_accept.w_io);
   ev_run(loop, 0);
-  return 0;
 }

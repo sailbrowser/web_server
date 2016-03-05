@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
 
 #include "server.h"
 
@@ -49,12 +51,13 @@ int main(int argc, char *argv[])
   /* Fork off the parent process */
   pid = fork();
   if (pid < 0) {
-          exit(EXIT_FAILURE);
+    perror("daemon fork");
+    exit(EXIT_FAILURE);
   }
   /* If we got a good PID, then
      we can exit the parent process. */
   if (pid > 0) {
-          exit(EXIT_SUCCESS);
+    exit(EXIT_SUCCESS);
   }
 
   /* Change the file mode mask */
@@ -103,6 +106,40 @@ int main(int argc, char *argv[])
   //     Do some task here ...
   //    sleep(30); /* wait 30 seconds */
   // }
-  server(port, ip, dir);
-  return 0;
+  int num_cores = get_num_cores();
+  pid_t *worker_pid = new pid_t[num_cores];
+  int *worker_sv = new int[num_cores];
+
+  for (int i = 0; i < num_cores; ++i)
+  {
+    int sv[2];
+    if(socketpair(AF_UNIX, SOCK_STREAM, 0, sv) < 0){
+      perror("socketpair");
+      exit(1);
+    }
+    if((worker_pid[i] = fork()) < 0) {
+      perror("fork");
+      exit(1);
+    } else if(worker_pid[i] == 0) { // child
+      close(sv[0]);
+      sleep(1);
+      worker(sv[1], dir);
+      exit(EXIT_SUCCESS);
+    } else { // parent
+      close(sv[1]);
+      worker_sv[i] = sv[0];
+    }
+  }
+
+  server(port, ip, worker_sv, num_cores);
+
+  int status;
+  for (int i = 0; i < num_cores; ++i)
+  {
+    wait(&status); // prevent zombies
+  }
+
+  delete[] worker_pid;
+  delete[] worker_sv;
+  return EXIT_SUCCESS;
 }

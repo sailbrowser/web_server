@@ -36,6 +36,7 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
     perror("read:");
     return;
   }
+  buffer[r] = 0;
   // struct http_io *w_read = (struct http_io *)watcher;
   printf("%s\n", buffer);
   if(strncmp(http_get_msg, buffer, strlen(http_get_msg)) == 0) {
@@ -63,7 +64,7 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   free(watcher);
 }
 //
-// Read accepted socked from main process
+// Read accepted socket from main process
 //
 void socket_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   int sd;

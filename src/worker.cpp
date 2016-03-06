@@ -67,10 +67,15 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
     server_log("---header---\n%s\n------------\n", res.header);
     send(watcher->fd, res.header, strlen(res.header), MSG_NOSIGNAL);
     if(res.code == _200) {
-      ssize_t rc = sendfile (watcher->fd, fd, NULL, stat_buf.st_size);
-      if (rc == -1) {
-        perror("sendfile");
+      int l;
+      while((l = read(fd, buffer, sizeof(buffer))) > 0) {
+        send(watcher->fd, buffer, l, MSG_NOSIGNAL);
       }
+      // ssize_t rc = sendfile (watcher->fd, fd, NULL, stat_buf.st_size);
+      // if (rc == -1) {
+      //   perror("sendfile");
+      // }
+
       close(fd);
     }
   }

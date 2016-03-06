@@ -14,8 +14,8 @@ const char *status_dic[] = {
 //enum http_content_type { none = 0, html, jpg }
 const char *content_type_dic[] = {
   "",
-  "Content-Type: text/html\n",
-  "Content-Type: image/jpeg\n"
+  "Content-Type: text/html\r\n",
+  "Content-Type: image/jpeg\r\n"
 };
 
 const char *content_length = "Content-Length:";
@@ -27,7 +27,7 @@ void http_response_init(struct http_response &res) {
 }
 
 int render_header(struct http_response &res) {
-  return snprintf(res.header, sizeof(res.header), "%s %s\n%s %lu\n%s\n",
+  return snprintf(res.header, sizeof(res.header), "%s %s\r\n%s %lu\r\n%s\r\n",
     version,
     status_dic[res.code],
     content_length,

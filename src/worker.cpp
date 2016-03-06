@@ -11,14 +11,16 @@
 
 #include "server.h"
 #include "socket_fd.h"
+#include "request.h"
+#include "response.h"
 
-#define BUFF_SIZE 4096
-#define MAX_PATH_LEN 1024
+// #define BUFF_SIZE 4096
+// #define MAX_PATH_LEN 1024
 
-const char* http_get_msg = "GET /";
-const char* success_msg = "HTTP/1.0 200 OK\n";
-const char* not_found_msg = "HTTP/1.0 404 Not found\n";
-const char* content_type_msg = "Content-Type: text/html\n";
+// const char* http_get_msg = "GET /";
+// const char* success_msg = "HTTP/1.0 200 OK\n";
+// const char* not_found_msg = "HTTP/1.0 404 Not found\n";
+// const char* content_type_msg = "Content-Type: text/html\n";
 
 struct http_io {
   struct ev_io w_io;
@@ -32,9 +34,14 @@ static void workersigterm_cb (struct ev_loop *loop, struct ev_signal *w, int rev
 }
 
 static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
+  int fd;
   struct stat stat_buf;
   char buffer[BUFF_SIZE];
-  char path[MAX_PATH_LEN];
+  // char path[MAX_PATH_LEN];
+  struct http_request req;
+  http_request_init(req);
+  struct http_response res;
+  http_response_init(res);
 
   ssize_t r = recv(watcher->fd, buffer, sizeof(buffer), MSG_NOSIGNAL);
   if (r < 0) {
@@ -43,19 +50,32 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   }
   buffer[r] = 0;
   // struct http_io *w_read = (struct http_io *)watcher;
-  printf("%s\n", buffer);
-  if(strncmp(http_get_msg, buffer, strlen(http_get_msg)) == 0) {
-    strncpy(path, "index.html", sizeof(path) - 1);
-    // strncat(path, "/index.html", sizeof(path) - 1);
-    int fd = open(path, O_RDONLY);
-    if(fd == -1) {
-      send(watcher->fd, not_found_msg, strlen(not_found_msg), MSG_NOSIGNAL);
+  server_log("%s\n", buffer);
+  if(http_request_parse(req, buffer, r) == -1) {
+    res.code = _501;
+  } else if(req.method != GET) {
+    res.code = _501;
+  } else {
+    server_log("%s\n", req.path);
+    // check file exist and have access to read
+    if(access(req.path, F_OK ) != 0) {
+      res.code = _404;
     } else {
-      send(watcher->fd, success_msg, strlen(success_msg), MSG_NOSIGNAL);
-      send(watcher->fd, content_type_msg, strlen(content_type_msg), MSG_NOSIGNAL);
-      /* get the size of the file to be sent */
-      fstat(fd, &stat_buf);
-      // int offset = 0;
+      fd = open(req.path, O_RDONLY);
+      if(fd == -1) {
+        res.code = _404;
+      } else {
+        res.code = _200;
+        /* get the size of the file to be sent */
+        fstat(fd, &stat_buf);
+        res.content_length = stat_buf.st_size;
+        res.content_type = html;
+      }
+    }
+    render_header(res);
+    server_log("---header---\n%s\n------------\n", res.header);
+    send(watcher->fd, res.header, strlen(res.header), MSG_NOSIGNAL);
+    if(res.code == _200) {
       ssize_t rc = sendfile (watcher->fd, fd, NULL, stat_buf.st_size);
       if (rc == -1) {
         perror("sendfile");

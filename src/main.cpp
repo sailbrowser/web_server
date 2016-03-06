@@ -21,26 +21,25 @@ int main(int argc, char *argv[])
       switch (opt){
       case 'h':
         ip = optarg;
-        std::cout << "ip = " << ip << std::endl;
+        // std::cout << "ip = " << ip << std::endl;
         break;
       case 'p':
         port = strtol(optarg, NULL, 10);
         if(port == 0) {
-          std::cout << "Error: incorrect port = " << optarg << std::endl;
+          std::cerr << "Error: incorrect port = " << optarg << std::endl;
           exit(EXIT_FAILURE);
         }
-        std::cout << "port = " << port << std::endl;
+        // std::cout << "port = " << port << std::endl;
         break;
       case 'd':
         dir = optarg;
-        std::cout << "dir = " << dir << std::endl;
+        // std::cout << "dir = " << dir << std::endl;
         break;
       default:
-        std::cout << "Usage: " << argv[0] << " -h <ip> -p <port> -d <directory>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " -h <ip> -p <port> -d <directory>" << std::endl;
         exit(EXIT_FAILURE);
       };
     };
-  // std::cout << "Optind = " << optind << std::endl;
   if(optind < 7) {
     std::cout << "Usage: " << argv[0] << " -h <ip> -p <port> -d <directory>" << std::endl;
     exit(EXIT_FAILURE);
@@ -64,7 +63,7 @@ int main(int argc, char *argv[])
   umask(0);
 
   /* Open any logs here */
-  int fd_log = open(LOG_FILENAME, O_RDWR | O_CREAT, 0666);
+  int fd_log = open(LOG_FILENAME, O_WRONLY | O_CREAT | O_APPEND, 0666);
   if(fd_log == -1) {
     perror("open log");
     exit(EXIT_FAILURE);
@@ -130,15 +129,19 @@ int main(int argc, char *argv[])
       worker_sv[i] = sv[0];
     }
   }
-
+  std::cout << "Start port=" << port << " ip=" << ip
+    << " dir=" << dir << " cores=" << num_cores << std::endl;
   server(port, ip, worker_sv, num_cores);
 
   int status;
   for (int i = 0; i < num_cores; ++i)
   {
     wait(&status); // prevent zombies
+    close(worker_sv[i]);
   }
 
+  close(STDOUT_FILENO);
+  close(STDERR_FILENO);
   delete[] worker_pid;
   delete[] worker_sv;
   return EXIT_SUCCESS;

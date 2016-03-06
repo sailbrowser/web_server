@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
 
   /* Close out the standard file descriptors */
   close(STDIN_FILENO);
-  // close(STDOUT_FILENO);
+  close(STDOUT_FILENO);
   // close(fd_log);
   // close(STDERR_FILENO);
 

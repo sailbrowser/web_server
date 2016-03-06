@@ -71,11 +71,11 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
       while((l = read(fd, buffer, sizeof(buffer))) > 0) {
         send(watcher->fd, buffer, l, MSG_NOSIGNAL);
       }
-      // ssize_t rc = sendfile (watcher->fd, fd, NULL, stat_buf.st_size);
+      // off_t offset = 0;
+      // ssize_t rc = sendfile (watcher->fd, fd, &offset, stat_buf.st_size);
       // if (rc == -1) {
       //   perror("sendfile");
       // }
-
       close(fd);
     }
   }
@@ -101,21 +101,21 @@ static void socket_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) 
 }
 
 void worker(int sv, char *dir) {
-    struct ev_loop *loop = ev_default_loop(0);
-    if(!loop) {
-      perror("ev_default_loop");
-      exit(1);
-    }
-    struct http_io w_socket;
-    w_socket.dir = dir;
-    ev_io_init(&w_socket.w_io, socket_cb, sv, EV_READ);
-    ev_io_start(loop, &w_socket.w_io);
+  struct ev_loop *loop = ev_default_loop(0);
+  if(!loop) {
+    perror("ev_default_loop");
+    exit(1);
+  }
+  struct http_io w_socket;
+  w_socket.dir = dir;
+  ev_io_init(&w_socket.w_io, socket_cb, sv, EV_READ);
+  ev_io_start(loop, &w_socket.w_io);
 
-    struct ev_signal signal_watcher;
-    ev_signal_init(&signal_watcher, workersigterm_cb, SIGTERM);
-    ev_signal_start(loop, &signal_watcher);
+  struct ev_signal signal_watcher;
+  ev_signal_init(&signal_watcher, workersigterm_cb, SIGTERM);
+  ev_signal_start(loop, &signal_watcher);
 
-    ev_run(loop, 0);
+  ev_run(loop, 0);
     // shutdown(sv, SHUT_RDWR);
-    close(sv);
+  close(sv);
 }

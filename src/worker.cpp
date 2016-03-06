@@ -14,18 +14,9 @@
 #include "request.h"
 #include "response.h"
 
-// #define BUFF_SIZE 4096
-// #define MAX_PATH_LEN 1024
-
-// const char* http_get_msg = "GET /";
-// const char* success_msg = "HTTP/1.0 200 OK\n";
-// const char* not_found_msg = "HTTP/1.0 404 Not found\n";
-// const char* content_type_msg = "Content-Type: text/html\n";
-
 struct http_io {
   struct ev_io w_io;
   char *dir;
-  // char const *tmp;
 };
 
 static void workersigterm_cb (struct ev_loop *loop, struct ev_signal *w, int revents)
@@ -37,7 +28,7 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   int fd;
   struct stat stat_buf;
   char buffer[BUFF_SIZE];
-  // char path[MAX_PATH_LEN];
+
   struct http_request req;
   http_request_init(req);
   struct http_response res;
@@ -58,7 +49,7 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   } else {
     server_log("%s\n", req.path);
     // check file exist and have access to read
-    if(access(req.path, F_OK ) != 0) {
+    if(access(req.path, R_OK ) != 0) {
       res.code = _404;
     } else {
       fd = open(req.path, O_RDONLY);

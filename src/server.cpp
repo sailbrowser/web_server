@@ -17,7 +17,6 @@ struct socket_io {
   struct ev_io w_io;
   int cores;
   const int *sv;
-  // char const *tmp;
 };
 
 static void sigterm_cb (struct ev_loop *loop, struct ev_signal *w, int revents)
@@ -33,16 +32,11 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) 
   }
   struct socket_io *w_accept = (struct socket_io *)watcher;
   static int index = 0;
-  // printf("to process socket %d\n", w_accept->sv[index]);
   int sv = w_accept->sv[index++];
   index %= w_accept->cores;
   // send socket to next worker
   sock_fd_write(sv, (void *)"1", 1, client_sd);
   close(client_sd);
-  // struct socket_io *w_client = (struct socket_io *) malloc(sizeof(struct socket_io));
-  // w_client->dir = w_accept->dir;
-  // ev_io_init(&w_client->w_io, read_cb, client_sd, EV_READ);
-  // ev_io_start(loop, &w_client->w_io);
 }
 
 void server(const int port, char const *ip_address, const int *sv, const int cores)
@@ -85,7 +79,6 @@ void server(const int port, char const *ip_address, const int *sv, const int cor
   struct socket_io w_accept;
   w_accept.cores = cores;
   w_accept.sv = sv;
-  // strncpy(w_accept.dir, dir, sizeof(w_accept.dir));
 
   ev_io_init(&w_accept.w_io, accept_cb, sd, EV_READ);
   ev_io_start(loop, &w_accept.w_io);

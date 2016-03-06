@@ -19,6 +19,32 @@ struct http_io {
   char *dir;
 };
 
+struct chank_io {
+  struct ev_io w_io;
+  int fd2;
+};
+
+static void chank_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
+  char buffer[1024];
+  struct chank_io *w_chank = (struct chank_io *)watcher;
+  ssize_t l = read(w_chank->fd2, buffer, sizeof(buffer));
+
+  if(l  > 0) {
+    send(watcher->fd, buffer, l, MSG_NOSIGNAL);
+  // off_t offset = 0;
+  // ssize_t rc = sendfile (watcher->fd, fd, &offset, stat_buf.st_size);
+  // if (rc == -1) {
+  //   perror("sendfile");
+  // }
+  } else {
+    close(w_chank->fd2);
+    shutdown(watcher->fd, SHUT_RDWR);
+    close(watcher->fd);
+    ev_io_stop(loop, watcher);
+    free(watcher);
+  }
+}
+
 static void workersigterm_cb (struct ev_loop *loop, struct ev_signal *w, int revents)
 {
   ev_unloop (loop, EVUNLOOP_ALL);
@@ -66,21 +92,16 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
     render_header(res);
     server_log("---header---\n%s\n------------\n", res.header);
     send(watcher->fd, res.header, strlen(res.header), MSG_NOSIGNAL);
-    if(res.code == _200) {
-      int l;
-      while((l = read(fd, buffer, sizeof(buffer))) > 0) {
-        send(watcher->fd, buffer, l, MSG_NOSIGNAL);
-      }
-      // off_t offset = 0;
-      // ssize_t rc = sendfile (watcher->fd, fd, &offset, stat_buf.st_size);
-      // if (rc == -1) {
-      //   perror("sendfile");
-      // }
-      close(fd);
+    if(res.code != _200) {
+      shutdown(watcher->fd, SHUT_RDWR);
+      close(watcher->fd);
+    } else {
+     struct chank_io *w_chank = (struct chank_io *) malloc(sizeof(struct chank_io));
+      w_chank->fd2 = fd;
+      ev_io_init(&w_chank->w_io, chank_cb, watcher->fd, EV_WRITE);
+      ev_io_start(loop, &w_chank->w_io);
     }
   }
-  shutdown(watcher->fd, SHUT_RDWR);
-  close(watcher->fd);
   ev_io_stop(loop, watcher);
   free(watcher);
 }

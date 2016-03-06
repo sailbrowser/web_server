@@ -12,10 +12,10 @@
 #define LOG_FILENAME  "./server.log"
 
 
-static void *threadFunc(void *arg)
-{
-  return NULL;
-}
+// static void *threadFunc(void *arg)
+// {
+//   return NULL;
+// }
 
 int main(int argc, char *argv[])
 {
@@ -142,21 +142,21 @@ int main(int argc, char *argv[])
     wait(&status); // prevent zombies
     close(worker_sv[i]);
   }
-  // fake thread
-    pthread_t thread;
-   int status_addr;
-   int arg = 42;
-   int result=pthread_create(&thread, NULL, threadFunc, &arg);
-   if(result != 0) {
-     perror("pthread_create");
-     exit(1);
-   }
-   int exit_status = pthread_join(thread, (void**)&status_addr);
-   if (exit_status != 0) {
-       perror("pthread_join");
-       exit(1);
-   }
-   // end fake thread
+  // // fake thread
+  //   pthread_t thread;
+  //  int status_addr;
+  //  int arg = 42;
+  //  int result=pthread_create(&thread, NULL, threadFunc, &arg);
+  //  if(result != 0) {
+  //    perror("pthread_create");
+  //    exit(1);
+  //  }
+  //  int exit_status = pthread_join(thread, (void**)&status_addr);
+  //  if (exit_status != 0) {
+  //      perror("pthread_join");
+  //      exit(1);
+  //  }
+  //  // end fake thread
   close(STDOUT_FILENO);
   close(STDERR_FILENO);
   delete[] worker_pid;

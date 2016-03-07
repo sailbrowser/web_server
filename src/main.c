@@ -10,7 +10,7 @@
 
 #include "server.h"
 
-#define LOG_FILENAME  "./server.log"
+// #define LOG_FILENAME  "./server.log"
 
 int main(int argc, char *argv[])
 {
@@ -27,7 +27,6 @@ int main(int argc, char *argv[])
         port = strtol(optarg, NULL, 10);
         if(port == 0) {
           printf("Error: incorrect port = %s\n", optarg);
-          // std::cerr << "Error: incorrect port = " << optarg << std::endl;
           exit(EXIT_FAILURE);
         }
         break;
@@ -36,7 +35,6 @@ int main(int argc, char *argv[])
         break;
       default:
       printf("Usage: %s -h <ip> -p <port> -d <directory>", argv[0]);
-        // std::cerr << "Usage: " << argv[0] << " -h <ip> -p <port> -d <directory>" << std::endl;
         exit(EXIT_FAILURE);
       };
     };
@@ -44,6 +42,12 @@ int main(int argc, char *argv[])
     printf("Usage: %s -h <ip> -p <port> -d <directory>", argv[0]);
     exit(EXIT_FAILURE);
   }
+
+  // disable SIGHUP for online test
+  struct sigaction sa;
+  sa.sa_handler = SIG_IGN;
+  sigfillset(&sa.sa_mask);
+  sigaction(SIGHUP, &sa, NULL);
 
   demonize(dir);
 
@@ -63,7 +67,7 @@ int main(int argc, char *argv[])
       exit(1);
     } else if(worker_pid[i] == 0) { // child
       close(sv[0]);
-      sleep(1);
+      // sleep(1);
       worker(sv[1], dir);
       exit(EXIT_SUCCESS);
     } else { // parent

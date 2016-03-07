@@ -67,13 +67,13 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   }
   buffer[r] = 0;
   // struct http_io *w_read = (struct http_io *)watcher;
-  server_log("%s\n", buffer);
+  // printf("%s\n", buffer);
   if(http_request_parse(&req, buffer, r) == -1) {
     res.code = _501;
   } else if(req.method != GET) {
     res.code = _501;
   } else {
-    server_log("%s\n", req.path);
+    // printf("%s\n", req.path);
     // check file exist and have access to read
     fd = open(req.path, O_RDONLY);
     if(fd == -1) {
@@ -86,7 +86,7 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
       res.content_type = html;
     }
     render_header(&res);
-    server_log("---header---\n%s\n------------\n", res.header);
+    // printf("---header---\n%s\n------------\n", res.header);
     send(watcher->fd, res.header, strlen(res.header), MSG_NOSIGNAL);
     if(res.code != _200) {
       shutdown(watcher->fd, SHUT_RDWR);

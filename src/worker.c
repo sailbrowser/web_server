@@ -75,19 +75,15 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   } else {
     server_log("%s\n", req.path);
     // check file exist and have access to read
-    if(access(req.path, R_OK ) != 0) {
+    fd = open(req.path, O_RDONLY);
+    if(fd == -1) {
       res.code = _404;
     } else {
-      fd = open(req.path, O_RDONLY);
-      if(fd == -1) {
-        res.code = _404;
-      } else {
-        res.code = _200;
-        /* get the size of the file to be sent */
-        fstat(fd, &stat_buf);
-        res.content_length = stat_buf.st_size;
-        res.content_type = html;
-      }
+      res.code = _200;
+      /* get the size of the file to be sent */
+      fstat(fd, &stat_buf);
+      res.content_length = stat_buf.st_size;
+      res.content_type = html;
     }
     render_header(&res);
     server_log("---header---\n%s\n------------\n", res.header);

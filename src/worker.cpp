@@ -9,6 +9,8 @@
 #include <ev.h>
 #include <sys/sendfile.h>
 
+#include <pthread.h>
+
 #include "server.h"
 #include "socket_fd.h"
 #include "request.h"
@@ -105,6 +107,7 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   ev_io_stop(loop, watcher);
   free(watcher);
 }
+
 //
 // Read accepted socket from main process
 //
@@ -119,6 +122,12 @@ static void socket_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) 
   w_client->dir = ((struct http_io *)watcher)->dir;
   ev_io_init(&w_client->w_io, read_cb, sd, EV_READ);
   ev_io_start(loop, &w_client->w_io);
+}
+
+static void *threadFunc(void *arg)
+{
+  sleep(180);
+  return NULL;
 }
 
 void worker(int sv, char *dir) {
@@ -136,7 +145,21 @@ void worker(int sv, char *dir) {
   ev_signal_init(&signal_watcher, workersigterm_cb, SIGTERM);
   ev_signal_start(loop, &signal_watcher);
 
+  pthread_t thread;
+  int result=pthread_create(&thread, NULL, threadFunc, &dir);
+  if(result != 0) {
+    perror("pthread_create");
+    exit(1);
+  }
+
   ev_run(loop, 0);
+
+  int status_addr;
+  int t_status = pthread_join(thread, (void**)&status_addr);
+  if (t_status != 0) {
+      perror("pthread_join");
+      exit(1);
+  }
     // shutdown(sv, SHUT_RDWR);
   close(sv);
 }

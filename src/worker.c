@@ -56,9 +56,9 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   char buffer[BUFF_SIZE];
 
   struct http_request req;
-  http_request_init(req);
+  http_request_init(&req);
   struct http_response res;
-  http_response_init(res);
+  http_response_init(&res);
 
   ssize_t r = recv(watcher->fd, buffer, sizeof(buffer), MSG_NOSIGNAL);
   if (r < 0) {
@@ -68,7 +68,7 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
   buffer[r] = 0;
   // struct http_io *w_read = (struct http_io *)watcher;
   server_log("%s\n", buffer);
-  if(http_request_parse(req, buffer, r) == -1) {
+  if(http_request_parse(&req, buffer, r) == -1) {
     res.code = _501;
   } else if(req.method != GET) {
     res.code = _501;
@@ -89,7 +89,7 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
         res.content_type = html;
       }
     }
-    render_header(res);
+    render_header(&res);
     server_log("---header---\n%s\n------------\n", res.header);
     send(watcher->fd, res.header, strlen(res.header), MSG_NOSIGNAL);
     if(res.code != _200) {
@@ -136,12 +136,6 @@ void worker(int sv, char *dir) {
   struct ev_signal signal_watcher;
   ev_signal_init(&signal_watcher, workersigterm_cb, SIGTERM);
   ev_signal_start(loop, &signal_watcher);
-
-  struct sigaction sa;
-  sa.sa_handler = SIG_IGN;
-  sa.sa_flags = SA_RESTART;
-  sigfillset(&sa.sa_mask);
-  sigaction(SIGHUP, &sa, NULL);
 
   ev_run(loop, 0);
     // shutdown(sv, SHUT_RDWR);

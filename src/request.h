@@ -7,5 +7,5 @@ struct http_request {
   char path[BUFF_SIZE];
 };
 
-void http_request_init(struct http_request &req);
-int http_request_parse(struct http_request &req, char *buf, size_t len);
+void http_request_init(struct http_request *req);
+int http_request_parse(struct http_request *req, char *buf, size_t len);

@@ -20,17 +20,17 @@ const char *content_type_dic[] = {
 
 const char *content_length = "Content-Length:";
 
-void http_response_init(struct http_response &res) {
-  res.code = _501;
-  res.content_length = 0;
-  res.content_type = none;
+void http_response_init(struct http_response *res) {
+  res->code = _501;
+  res->content_length = 0;
+  res->content_type = none;
 }
 
-int render_header(struct http_response &res) {
-  return snprintf(res.header, sizeof(res.header), "%s %s\r\n%s %lu\r\n%s\r\n",
+int render_header(struct http_response *res) {
+  return snprintf(res->header, sizeof(res->header), "%s %s\r\n%s %lu\r\n%s\r\n",
     version,
-    status_dic[res.code],
+    status_dic[res->code],
     content_length,
-    res.content_length,
-    content_type_dic[res.content_type]);
+    res->content_length,
+    content_type_dic[res->content_type]);
 }

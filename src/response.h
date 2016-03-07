@@ -10,5 +10,5 @@ struct http_response {
   char header[HEADER_MAX_SIZE];
 };
 
-void http_response_init(struct http_response &res);
-int render_header(struct http_response &res);
+void http_response_init(struct http_response *res);
+int render_header(struct http_response *res);

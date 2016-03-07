@@ -9,8 +9,6 @@
 #include <ev.h>
 #include <sys/sendfile.h>
 
-#include <pthread.h>
-
 #include "server.h"
 #include "socket_fd.h"
 #include "request.h"
@@ -124,12 +122,6 @@ static void socket_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) 
   ev_io_start(loop, &w_client->w_io);
 }
 
-static void *threadFunc(void *arg)
-{
-  sleep(180);
-  return NULL;
-}
-
 void worker(int sv, char *dir) {
   struct ev_loop *loop = ev_default_loop(0);
   if(!loop) {
@@ -145,21 +137,13 @@ void worker(int sv, char *dir) {
   ev_signal_init(&signal_watcher, workersigterm_cb, SIGTERM);
   ev_signal_start(loop, &signal_watcher);
 
-  pthread_t thread;
-  int result=pthread_create(&thread, NULL, threadFunc, &dir);
-  if(result != 0) {
-    perror("pthread_create");
-    exit(1);
-  }
+  struct sigaction sa;
+  sa.sa_handler = SIG_IGN;
+  sa.sa_flags = SA_RESTART;
+  sigfillset(&sa.sa_mask);
+  sigaction(SIGHUP, &sa, NULL);
 
   ev_run(loop, 0);
-
-  int status_addr;
-  int t_status = pthread_join(thread, (void**)&status_addr);
-  if (t_status != 0) {
-      perror("pthread_join");
-      exit(1);
-  }
     // shutdown(sv, SHUT_RDWR);
   close(sv);
 }

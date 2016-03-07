@@ -87,6 +87,12 @@ void server(const int port, char const *ip_address, const int *sv, const int cor
   ev_signal_init(&signal_watcher, sigterm_cb, SIGTERM);
   ev_signal_start(loop, &signal_watcher);
 
+  struct sigaction sa;
+  sa.sa_handler = SIG_IGN;
+  sa.sa_flags = SA_RESTART;
+  sigfillset(&sa.sa_mask);
+  sigaction(SIGHUP, &sa, NULL);
+
   ev_run(loop, 0);
   close(sd);
 }

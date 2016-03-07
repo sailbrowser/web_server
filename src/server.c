@@ -64,6 +64,10 @@ void server(const int port, char const *ip_address, const int *sv, const int cor
   addr.sin_port = htons(port);
   memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
   // addr.sin_addr.s_addr = htonl(ip_address);
+  int enable = 1;
+  if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0){
+    perror("setsockopt");
+  }
   int res_bind = bind(sd, (struct sockaddr *) &addr, sizeof(addr));
   if(res_bind == -1) {
     perror("bind");

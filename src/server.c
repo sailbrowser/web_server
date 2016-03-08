@@ -10,7 +10,7 @@
 #include <netdb.h>
 
 #include "server.h"
-#include "socket_fd.h"
+#include "fdpass.h"
 
 
 struct socket_io {

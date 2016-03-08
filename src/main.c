@@ -1,4 +1,3 @@
-#define _POSIX_C_SOURCE 2
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -7,6 +6,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 #include "server.h"
 
@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
   // disable SIGHUP for online test
   struct sigaction sa;
   sa.sa_handler = SIG_IGN;
+  sa.sa_flags = SA_RESTART;
   sigfillset(&sa.sa_mask);
   sigaction(SIGHUP, &sa, NULL);
 
